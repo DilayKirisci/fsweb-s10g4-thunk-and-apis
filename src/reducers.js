@@ -1,48 +1,81 @@
+import { toast } from "react-toastify";
+
 import {
-  FAV_ADD,
-  FAV_REMOVE,
-  FETCH_SUCCESS,
-  FETCH_LOADING,
-  FETCH_ERROR,
-  GET_FAVS_FROM_LS,
+	FAV_ADD,
+	FAV_REMOVE,
+	FETCH_SUCCESS,
+	FETCH_LOADING,
+	FETCH_ERROR,
+	GET_FAVS_FROM_LS,
+	fetchAnother,
+	REMOVE_FAVS_FROM_LS,
 } from "./actions";
 
 const initial = {
-  favs: [],
-  current: null,
-  error: null,
-  loading: true,
+	favs: [],
+	current: null,
+	error: null,
+	loading: false,
+	onlist: false,
 };
 
-function writeFavsToLocalStorage(state) {
-  localStorage.setItem("s10g4", JSON.stringify(state.favs));
+function writeFavsToLocalStorage(favs) {
+	localStorage.setItem("favorites", JSON.stringify(favs));
 }
 
 function readFavsFromLocalStorage() {
-  return JSON.parse(localStorage.getItem("s10g4"));
+	return JSON.parse(localStorage.getItem("favorites"));
 }
 
 export function myReducer(state = initial, action) {
-  switch (action.type) {
-    case FAV_ADD:
-      return state;
+	switch (action.type) {
+		case FAV_ADD:
+			const isAlreadyInFavorites = state.favs.some(
+				(item) => item === action.payload
+			);
+			if (isAlreadyInFavorites) {
+				return { ...state, onlist: true };
+			} else {
+				const updatedState = {
+					...state,
+					favs: [...state.favs, action.payload],
+					onlist: true,
+				};
 
-    case FAV_REMOVE:
-      return state;
+				writeFavsToLocalStorage(updatedState.favs);
+				toast.success("Favorilere eklendi!");
 
-    case FETCH_SUCCESS:
-      return state;
+				return updatedState;
+			}
 
-    case FETCH_LOADING:
-      return state;
+		case FAV_REMOVE:
+			return {
+				...state,
+				favs: state.favs.filter((item) => item.key !== action.payload),
+			};
 
-    case FETCH_ERROR:
-      return state;
+		case FETCH_SUCCESS:
+			return { ...state, current: action.payload, onlist: false };
 
-    case GET_FAVS_FROM_LS:
-      return state;
+		case FETCH_LOADING:
+			return { ...state, loading: action.payload };
 
-    default:
-      return state;
-  }
+		case FETCH_ERROR:
+			return { ...state, error: action.payload };
+
+		case GET_FAVS_FROM_LS:
+			const savedFavs = readFavsFromLocalStorage();
+			if (savedFavs) {
+				const updatedState = { ...state, favs: savedFavs };
+				return updatedState;
+			} else {
+				return state;
+			}
+		case REMOVE_FAVS_FROM_LS:
+			localStorage.clear();
+			return { ...state, favs: [] };
+
+		default:
+			return state;
+	}
 }
